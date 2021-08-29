@@ -302,7 +302,7 @@ class SchemaExtenderWithDecoratorTest extends TestCase
     }
 
 
-    public function testDecoratorLaterTypeLevelResolverOverwritesExisting(): void
+    public function testDecoratorLaterTypeLevelResolverOverwritesThePreviousOne(): void
     {
         $documentNode1 = Parser::parse('
             type Query {
@@ -354,7 +354,7 @@ class SchemaExtenderWithDecoratorTest extends TestCase
         self::assertSame(['data' => ['hello' => '*default*', 'bye' => 'See ya!']], $result->toArray());
     }
 
-    public function testDecoratorLaterTypeLevelResolverCanUsePreviousOne(): void
+    public function testDecoratorLaterTypeLevelResolverCanUseThePreviousOne(): void
     {
         $documentNode1 = Parser::parse('
             type Query {
@@ -461,7 +461,7 @@ class SchemaExtenderWithDecoratorTest extends TestCase
     /**
      * based on @see it('isTypeOf used to resolve runtime type for Interface'
      */
-    public function testInterface1(): void
+    public function testInterface1a(): void
     {
         $documentNode1 = Parser::parse('
             interface Pet {
@@ -471,20 +471,36 @@ class SchemaExtenderWithDecoratorTest extends TestCase
                 name: String
                 woofs: Boolean
             }
-            type Cat implements Pet {
-                name: String
-                meows: Boolean
-            }
             type Query {
                 pets: [Pet]
             }
         ');
+
+        $typeConfigDecorator1 = static function (array $typeConfig): array {
+            if ($typeConfig['name'] === 'Dog') {
+                $typeConfig['isTypeOf'] = static fn($value) => is_array($value) && array_key_exists('woofs', $value);
+            }
+            return $typeConfig;
+        };
+
+        $schema1 = BuildSchema::build($documentNode1, $typeConfigDecorator1);
+
         $documentNode2 = Parser::parse('
-            type Bird implements Pet {
+            type Cat implements Pet {
                 name: String
-                flies: Boolean
+                meows: Boolean
             }
         ');
+
+        $typeConfigDecorator2 = static function (array $typeConfig): array {
+            if ($typeConfig['name'] === 'Cat') {
+                $typeConfig['isTypeOf'] = static fn($value) => is_array($value) && array_key_exists('meows', $value);
+            }
+            return $typeConfig;
+        };
+
+        $schema2 = SchemaExtender::extend($schema1, $documentNode2, [], $typeConfigDecorator2);
+
         $query = '{
           pets {
             name
@@ -494,11 +510,275 @@ class SchemaExtenderWithDecoratorTest extends TestCase
               ... on Cat {
               meows
             }
-              ... on Bird {
-              flies
+          }
+        }';
+
+        $rootValue = [
+            'pets' => [
+                ['name' => 'Odie', 'woofs' => true],
+                ['name' => 'Garfield', 'meows' => false],
+            ],
+        ];
+
+        $result = GraphQL::executeQuery($schema2, $query, $rootValue);
+
+        self::assertSame(
+            ['data' => [
+                'pets' => [
+                    ['name' => 'Odie', 'woofs' => true],
+                    ['name' => 'Garfield', 'meows' => false],
+                ]
+            ]],
+            $result->toArray(),
+        );
+    }
+
+
+    public function testInterface1LaterResolveTypeOverwritesThePreviousOne(): void
+    {
+        $documentNode1 = Parser::parse('
+            interface Pet {
+                name: String
+            }
+            type Dog implements Pet {
+                name: String
+                woofs: Boolean
+            }
+            type Query {
+                pets: [Pet]
+            }
+        ');
+
+        $typeConfigDecorator1 = static function (array $typeConfig): array {
+            if ($typeConfig['name'] === 'Pet') {
+                $typeConfig['resolveType'] = static function ($value): ?string {
+                    if (!is_array($value)) return null;
+                    if (array_key_exists('woofs', $value)) return 'Dog';
+                    return null;
+                };
+            }
+            return $typeConfig;
+        };
+
+        $schema1 = BuildSchema::build($documentNode1, $typeConfigDecorator1);
+
+        $documentNode2 = Parser::parse('
+            type Cat implements Pet {
+                name: String
+                meows: Boolean
+            }
+        ');
+
+        $typeConfigDecorator2 = static function (array $typeConfig): array {
+            if ($typeConfig['name'] === 'Pet') {
+                $typeConfig['resolveType'] = static function ($value): ?string {
+                    if (!is_array($value)) return null;
+                    if (array_key_exists('meows', $value)) return 'Cat';
+                    return null;
+                };
+            }
+            return $typeConfig;
+        };
+
+        $schema2 = SchemaExtender::extend($schema1, $documentNode2, [], $typeConfigDecorator2);
+
+        $query = '{
+          pets {
+            name
+              ... on Dog {
+              woofs
+            }
+              ... on Cat {
+              meows
             }
           }
         }';
+
+        $rootValue = [
+            'pets' => [
+                ['name' => 'Odie', 'woofs' => true],
+                ['name' => 'Garfield', 'meows' => false],
+            ],
+        ];
+
+        $result = GraphQL::executeQuery($schema2, $query, $rootValue);
+
+        self::assertSame(
+            ['data' => [
+                'pets' => [
+                    ['name' => 'Odie', 'woofs' => true],
+                    ['name' => 'Garfield', 'meows' => false],
+                ]
+            ]],
+            $result->toArray(),
+        );
+    }
+
+    public function testInterface1LaterResolveTypeCanUseThePreviousOne(): void
+    {
+        $documentNode1 = Parser::parse('
+            interface Pet {
+                name: String
+            }
+            type Dog implements Pet {
+                name: String
+                woofs: Boolean
+            }
+            type Query {
+                pets: [Pet]
+            }
+        ');
+
+        $typeConfigDecorator1 = static function (array $typeConfig): array {
+            if ($typeConfig['name'] === 'Pet') {
+                $typeConfig['resolveType'] = static function ($value): ?string {
+                    if (!is_array($value)) return null;
+                    if (array_key_exists('woofs', $value)) return 'Dog';
+                    return null;
+                };
+            }
+            return $typeConfig;
+        };
+
+        $schema1 = BuildSchema::build($documentNode1, $typeConfigDecorator1);
+
+        $documentNode2 = Parser::parse('
+            type Cat implements Pet {
+                name: String
+                meows: Boolean
+            }
+        ');
+
+        $typeConfigDecorator2 = static function (array $typeConfig): array {
+            if ($typeConfig['name'] === 'Pet') {
+                $resolveTypeFn = $typeConfig['resolveType'];
+                $typeConfig['resolveType'] = static function ($value, $context, $info) use ($resolveTypeFn): ?string {
+                    // first handle the types added by this extension
+                    if (is_array($value) && array_key_exists('meows', $value)) return 'Cat';
+                    // then let the existing type resolver handle the other types
+                    return $resolveTypeFn($value, $context, $info);
+                };
+            }
+            return $typeConfig;
+        };
+
+        $schema2 = SchemaExtender::extend($schema1, $documentNode2, [], $typeConfigDecorator2);
+
+        $query = '{
+          pets {
+            name
+              ... on Dog {
+              woofs
+            }
+              ... on Cat {
+              meows
+            }
+          }
+        }';
+
+        $rootValue = [
+            'pets' => [
+                ['name' => 'Odie', 'woofs' => true],
+                ['name' => 'Garfield', 'meows' => false],
+            ],
+        ];
+
+        $result = GraphQL::executeQuery($schema2, $query, $rootValue);
+
+        self::assertSame([
+            'errors' => [[
+                'message' => 'Internal server error',
+                'locations' => [['line' => 2, 'column' => 11]],
+                'path' => ['pets', 0],
+                'extensions' => [
+                    'debugMessage' => 'GraphQL Interface Type `Pet` returned `null` from its `resolveType` function for value: {"name":"Odie","woofs":true}. Switching to slow resolution method using `isTypeOf` of all possible implementations. It requires full schema scan and degrades query performance significantly.  Make sure your `resolveType` always returns valid implementation or throws.'
+                ],
+            ]],
+            'data' => [
+                'pets' => [
+                    null,
+                    ['name' => 'Garfield', 'meows' => false],
+                ],
+            ]],
+            $result->toArray(DebugFlag::INCLUDE_DEBUG_MESSAGE),
+        );
+    }
+
+    public function testXXX1(): void
+    {
+        $documentNode1 = Parser::parse('
+            interface Pet {
+                name: String
+            }
+            type Dog implements Pet {
+                name: String
+                woofs: Boolean
+            }
+            type Query {
+                pets: [Pet]
+            }
+            type Cat implements Pet {
+                name: String
+                meows: Boolean
+            }
+        ');
+
+        $typeConfigDecorator2 = static function (array $typeConfig): array {
+            if ($typeConfig['name'] === 'Pet') {
+                $resolveTypeFn = $typeConfig['resolveType'] ?? static fn() => null;
+                $typeConfig['resolveType'] = static function ($value, $context, $info) use ($resolveTypeFn): ?string {
+                    // first handle the types added by this extension
+                    if (is_array($value) && array_key_exists('meows', $value)) return 'Cat';
+                    // then let the existing type resolver handle the other types
+                    return $resolveTypeFn($value, $context, $info);
+                };
+            }
+            return $typeConfig;
+        };
+
+        $schema2 = BuildSchema::build($documentNode1, $typeConfigDecorator2);
+
+        $query = '{
+          pets {
+            name
+              ... on Dog {
+              woofs
+            }
+              ... on Cat {
+              meows
+            }
+          }
+        }';
+
+        $rootValue = [
+            'pets' => [
+                ['name' => 'Odie', 'woofs' => true],
+                ['name' => 'Garfield', 'meows' => false],
+            ],
+        ];
+
+        $result = GraphQL::executeQuery($schema2, $query, $rootValue);
+
+        self::assertSame([
+            'errors' => [
+                [
+                    'message' => 'Internal server error',
+                    'locations' => [['line' => 2, 'column' => 11]],
+                    'path' => ['pets', 0],
+                    'extensions' => [
+                        'debugMessage' => 'GraphQL Interface Type `Pet` returned `null` from its `resolveType` function for value: {"name":"Odie","woofs":true}. Switching to slow resolution method using `isTypeOf` of all possible implementations. It requires full schema scan and degrades query performance significantly.  Make sure your `resolveType` always returns valid implementation or throws.'
+                    ],
+
+                ]
+            ],
+            'data' => [
+                'pets' => [
+                    null,
+                    ['name' => 'Garfield', 'meows' => false],
+                ]
+            ]],
+            $result->toArray(DebugFlag::INCLUDE_DEBUG_MESSAGE),
+        );
     }
 
     /**
@@ -526,6 +806,7 @@ class SchemaExtenderWithDecoratorTest extends TestCase
           }
         }';
     }
+
     /**
      * @see it('extends objects by adding implemented new interfaces'
      */
@@ -557,6 +838,7 @@ class SchemaExtenderWithDecoratorTest extends TestCase
           }
         }';
     }
+
     /**
      * @see it('extends interfaces by adding new implemented interfaces'
      */
