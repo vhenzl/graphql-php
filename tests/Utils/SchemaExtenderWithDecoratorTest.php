@@ -3,6 +3,7 @@
 namespace GraphQL\Tests\Utils;
 
 use GraphQL\Error\DebugFlag;
+use GraphQL\Error\Warning;
 use GraphQL\GraphQL;
 use GraphQL\Language\Parser;
 use GraphQL\Utils\BuildSchema;
@@ -11,6 +12,118 @@ use PHPUnit\Framework\TestCase;
 
 class SchemaExtenderWithDecoratorTest extends TestCase
 {
+    // config validation (sanity checks)
+
+    /**
+     * TODO: Field config fields: Throw (preferred), ignore, or allow?
+     *  Throw for those coming from SDL/AST: name, type, args, description, deprecationReason
+     *  Allow: resolve, complexity, custom fields
+     */
+    public function testDecoratorCannotOverwriteSDLProvidedFieldConfigFields(): void
+    {
+        $this->expectException('A\Decorator\CannotOverwriteFieldConfigFieldException');
+        $documentNode1 = Parser::parse('
+            type Query {
+                hello: String
+            }
+        ');
+
+        $typeConfigDecorator1 = static function (array $typeConfig): array {
+            if ($typeConfig['name'] === 'Query') {
+                $fieldsFn = $typeConfig['fields'];
+                $typeConfig['fields'] = static function () use ($fieldsFn): array {
+                    $fields = $fieldsFn();
+                    $fields['hello']['description'] = 'My description';
+                    return $fields;
+                };
+            }
+            return $typeConfig;
+        };
+
+        BuildSchema::build($documentNode1, $typeConfigDecorator1);
+    }
+
+    /**
+     * This also means that a field (resolver) can't be added for an extension
+     * ahead of calling extend.
+     */
+    public function testDecoratorCannotAddUndefinedField(): void
+    {
+        $this->expectException('A\Decorator\FieldDoesNotExistInSchemaException');
+        $documentNode1 = Parser::parse('
+            type Query {
+                hello: String
+            }
+        ');
+
+        $typeConfigDecorator1 = static function (array $typeConfig): array {
+            if ($typeConfig['name'] === 'Query') {
+                $fieldsFn = $typeConfig['fields'];
+                $typeConfig['fields'] = static function () use ($fieldsFn): array {
+                    $fields = $fieldsFn();
+                    self::assertArrayNotHasKey('bye', $fields);
+                    $fields['bye'] = [
+                        'type' => 'String',
+                        'name' => 'bye',
+                    ];
+                    return $fields;
+                };
+            }
+            return $typeConfig;
+        };
+
+        BuildSchema::build($documentNode1, $typeConfigDecorator1);
+    }
+
+    /**
+     * This also means that an object type config (individual field resolvers, isTypeOf, and resolveField)
+     * can't be added for an extension ahead of calling extend.
+     */
+    public function testDecoratorCannotAddUndefinedType(): void
+    {
+        $this->expectException('A\Decorator\ObjectTypeDoesNotExistInSchemaException');
+        $documentNode1 = Parser::parse('
+            type Query {
+                hello: String
+            }
+        ');
+
+        $typeConfigDecorator1 = static function (array $typeConfig): array {
+            $typeConfig['MyType'] = [
+                'name' => 'MyType',
+                'resolveFields' => static fn() => 'Nope!',
+            ];
+            return $typeConfig;
+        };
+
+        BuildSchema::build($documentNode1, $typeConfigDecorator1);
+    }
+
+    /**
+     * TODO: Object config fields: Throw (preferred), ignore, or allow?
+     *  Throw for those coming from SDL/AST: name, description, interfaces
+     *  Allow: fields (only to modify existing), isTypeOf, resolveField, custom fields
+     */
+    public function testDecoratorCannotOverwriteSDLProvidedObjectConfigFields(): void
+    {
+        $this->expectException('A\Decorator\CannotOverwriteObjectConfigFieldException');
+        $documentNode1 = Parser::parse('
+            type Query {
+                hello: String
+            }
+        ');
+
+        $typeConfigDecorator1 = static function (array $typeConfig): array {
+            if ($typeConfig['name'] === 'Query') {
+                $typeConfig['description'] = 'My description';
+            }
+            return $typeConfig;
+        };
+
+        BuildSchema::build($documentNode1, $typeConfigDecorator1);
+    }
+
+    // individual field resolvers and type level resolvers
 
     public function testDecoratorAddsIndividualFieldResolversInEachExtend(): void
     {
@@ -191,118 +304,7 @@ class SchemaExtenderWithDecoratorTest extends TestCase
         SchemaExtender::extend($schema1, $documentNode2, [], $typeConfigDecorator2);
     }
 
-    /**
-     * TODO: Field config fields: Throw (preferred), ignore, or allow?
-     *  Throw for those coming from SDL/AST: name, type, args, description, deprecationReason
-     *  Allow: resolve, complexity, custom fields
-     */
-    public function testDecoratorCannotOverwriteSDLProvidedFieldConfigFields(): void
-    {
-        $this->expectException('A\Decorator\CannotOverwriteFieldConfigFieldException');
-        $documentNode1 = Parser::parse('
-            type Query {
-                hello: String
-            }
-        ');
-
-        $typeConfigDecorator1 = static function (array $typeConfig): array {
-            if ($typeConfig['name'] === 'Query') {
-                $fieldsFn = $typeConfig['fields'];
-                $typeConfig['fields'] = static function () use ($fieldsFn): array {
-                    $fields = $fieldsFn();
-                    $fields['hello']['description'] = 'My description';
-                    return $fields;
-                };
-            }
-            return $typeConfig;
-        };
-
-        BuildSchema::build($documentNode1, $typeConfigDecorator1);
-    }
-
-    /**
-     * This also means that a field (resolver) can't be added for an extension
-     * ahead of calling extend.
-     */
-    public function testDecoratorCannotAddUndefinedField(): void
-    {
-        $this->expectException('A\Decorator\FieldDoesNotExistInSchemaException');
-        $documentNode1 = Parser::parse('
-            type Query {
-                hello: String
-            }
-        ');
-
-        $typeConfigDecorator1 = static function (array $typeConfig): array {
-            if ($typeConfig['name'] === 'Query') {
-                $fieldsFn = $typeConfig['fields'];
-                $typeConfig['fields'] = static function () use ($fieldsFn): array {
-                    $fields = $fieldsFn();
-                    self::assertArrayNotHasKey('bye', $fields);
-                    $fields['bye'] = [
-                        'type' => 'String',
-                        'name' => 'bye',
-                    ];
-                    return $fields;
-                };
-            }
-            return $typeConfig;
-        };
-
-        BuildSchema::build($documentNode1, $typeConfigDecorator1);
-    }
-
-    /**
-     * This also means that an object type config (individual field resolvers, isTypeOf, and resolveField)
-     * can't be added for an extension ahead of calling extend.
-     */
-    public function testDecoratorCannotAddUndefinedType(): void
-    {
-        $this->expectException('A\Decorator\ObjectTypeDoesNotExistInSchemaException');
-        $documentNode1 = Parser::parse('
-            type Query {
-                hello: String
-            }
-        ');
-
-        $typeConfigDecorator1 = static function (array $typeConfig): array {
-            $typeConfig['MyType'] = [
-                'name' => 'MyType',
-                'resolveFields' => static fn() => 'Nope!',
-            ];
-            return $typeConfig;
-        };
-
-        BuildSchema::build($documentNode1, $typeConfigDecorator1);
-    }
-
-
-    /**
-     * TODO: Object config fields: Throw (preferred), ignore, or allow?
-     *  Throw for those coming from SDL/AST: name, description, interfaces
-     *  Allow: fields (only to modify existing), isTypeOf, resolveField, custom fields
-     */
-    public function testDecoratorCannotOverwriteSDLProvidedObjectConfigFields(): void
-    {
-        $this->expectException('A\Decorator\CannotOverwriteObjectConfigFieldException');
-        $documentNode1 = Parser::parse('
-            type Query {
-                hello: String
-            }
-        ');
-
-        $typeConfigDecorator1 = static function (array $typeConfig): array {
-            if ($typeConfig['name'] === 'Query') {
-                $typeConfig['description'] = 'My description';
-            }
-            return $typeConfig;
-        };
-
-        BuildSchema::build($documentNode1, $typeConfigDecorator1);
-    }
-
-
-    public function testDecoratorLaterTypeLevelResolverOverwritesThePreviousOne(): void
+    public function testLaterTypeLevelResolverOverwritesThePreviousOne(): void
     {
         $documentNode1 = Parser::parse('
             type Query {
@@ -354,7 +356,7 @@ class SchemaExtenderWithDecoratorTest extends TestCase
         self::assertSame(['data' => ['hello' => '*default*', 'bye' => 'See ya!']], $result->toArray());
     }
 
-    public function testDecoratorLaterTypeLevelResolverCanUseThePreviousOne(): void
+    public function testLaterTypeLevelResolverCanUseThePreviousOne(): void
     {
         $documentNode1 = Parser::parse('
             type Query {
@@ -409,7 +411,7 @@ class SchemaExtenderWithDecoratorTest extends TestCase
         self::assertSame(['data' => ['hello' => 'Hey!', 'bye' => 'See ya!']], $result->toArray());
     }
 
-    public function testDecoratorIndividualFieldResolversHasPrecedenceOverTypeLevelResolverRegardlessOrder(): void
+    public function testIndividualFieldResolversHasPrecedenceOverTypeLevelResolverRegardlessOrder(): void
     {
         $documentNode1 = Parser::parse('
             type Query {
@@ -457,11 +459,9 @@ class SchemaExtenderWithDecoratorTest extends TestCase
         self::assertSame(['data' => ['hello' => 'Hello!', 'bye' => 'Bye!']], $result->toArray());
     }
 
+    // isTypeOf (for interface)
 
-    /**
-     * based on @see it('isTypeOf used to resolve runtime type for Interface'
-     */
-    public function testInterface1a(): void
+    public function testDecoratorAddIsTypeOfInEachExtend(): void
     {
         $documentNode1 = Parser::parse('
             interface Character {
@@ -520,6 +520,7 @@ class SchemaExtenderWithDecoratorTest extends TestCase
             ],
         ];
 
+        // TODO: Why the execution doesn't trigger the full schema scan warning here?
         $result = GraphQL::executeQuery($schema2, $query, $rootValue);
 
         self::assertSame(
@@ -533,8 +534,164 @@ class SchemaExtenderWithDecoratorTest extends TestCase
         );
     }
 
+    public function testDecoratorAddAllIsTypeOfInTheLastExtend(): void
+    {
+        $documentNode1 = Parser::parse('
+            interface Character {
+                name: String
+            }
+            type Human implements Character {
+                name: String
+                homePlanet: String
+            }
+            type Query {
+                characters: [Character]
+            }
+        ');
 
-    public function testInterface1LaterResolveTypeOverwritesThePreviousOne(): void
+        $schema1 = BuildSchema::build($documentNode1);
+
+        $documentNode2 = Parser::parse('
+            type Droid implements Character {
+                name: String
+                primaryFunction: String
+            }
+        ');
+
+        $typeConfigDecorator2 = static function (array $typeConfig): array {
+            if ($typeConfig['name'] === 'Human') {
+                $typeConfig['isTypeOf'] = static fn($value) => is_array($value) && array_key_exists('homePlanet', $value);
+            }
+            if ($typeConfig['name'] === 'Droid') {
+                $typeConfig['isTypeOf'] = static fn($value) => is_array($value) && array_key_exists('primaryFunction', $value);
+            }
+            return $typeConfig;
+        };
+
+        $schema2 = SchemaExtender::extend($schema1, $documentNode2, [], $typeConfigDecorator2);
+
+        $query = '{
+          characters {
+            name
+              ... on Human {
+              homePlanet
+            }
+              ... on Droid {
+              primaryFunction
+            }
+          }
+        }';
+
+        $rootValue = [
+            'characters' => [
+                ['name' => 'Luke Skywalker', 'homePlanet' => 'Tatooine'],
+                ['name' => 'R2-D2', 'primaryFunction' => 'Astromech'],
+            ],
+        ];
+
+        // suppress the warning so that isTypeOf is actually used during the execution
+        Warning::suppress(Warning::WARNING_FULL_SCHEMA_SCAN);
+        $result = GraphQL::executeQuery($schema2, $query, $rootValue);
+        Warning::enable(Warning::WARNING_FULL_SCHEMA_SCAN);
+
+        self::assertSame(
+            ['data' => [
+                'characters' => [
+                    ['name' => 'Luke Skywalker', 'homePlanet' => 'Tatooine'],
+                    ['name' => 'R2-D2', 'primaryFunction' => 'Astromech'],
+                ]
+            ]],
+            $result->toArray(DebugFlag::INCLUDE_DEBUG_MESSAGE),
+        );
+    }
+
+    /**
+     * TODO: can or cannot?
+     */
+    public function testDecoratorCanOverwriteExistingIsTypeOf(): void
+    {
+        // $this->expectException('A\Decorator\IsTypeOfAlreadyExistsException');
+        $documentNode1 = Parser::parse('
+            interface Character {
+                name: String
+            }
+            type Human implements Character {
+                name: String
+                homePlanet: String
+            }
+            type Query {
+                characters: [Character]
+            }
+        ');
+
+        $typeConfigDecorator1 = static function (array $typeConfig): array {
+            if ($typeConfig['name'] === 'Human') {
+                $typeConfig['isTypeOf'] = static fn($value) => is_array($value) && array_key_exists('homePlanet', $value);
+            }
+            return $typeConfig;
+        };
+
+        $schema1 = BuildSchema::build($documentNode1, $typeConfigDecorator1);
+
+        $documentNode2 = Parser::parse('
+            type Droid implements Character {
+                name: String
+                primaryFunction: String
+            }
+        ');
+
+        $typeConfigDecorator2 = static function (array $typeConfig): array {
+            // TODO: What would be a valid, real-world use-case for overwriting isTypeOf?
+            // changing human to droid and droid to human here
+            if ($typeConfig['name'] === 'Human') {
+                $typeConfig['isTypeOf'] = static fn($value) => is_array($value) && array_key_exists('primaryFunction', $value);
+            }
+            if ($typeConfig['name'] === 'Droid') {
+                $typeConfig['isTypeOf'] = static fn($value) => is_array($value) && array_key_exists('homePlanet', $value);
+            }
+            return $typeConfig;
+        };
+
+        $schema2 = SchemaExtender::extend($schema1, $documentNode2, [], $typeConfigDecorator2);
+
+        $query = '{
+          characters {
+            name
+              ... on Human {
+              homePlanet
+            }
+              ... on Droid {
+              primaryFunction
+            }
+          }
+        }';
+
+        $rootValue = [
+            'characters' => [
+                ['name' => 'Luke Skywalker', 'homePlanet' => 'Tatooine'],
+                ['name' => 'R2-D2', 'primaryFunction' => 'Astromech'],
+            ],
+        ];
+
+        // suppress the warning so that isTypeOf is actually used during the execution
+        Warning::suppress(Warning::WARNING_FULL_SCHEMA_SCAN);
+        $result = GraphQL::executeQuery($schema2, $query, $rootValue);
+        Warning::enable(Warning::WARNING_FULL_SCHEMA_SCAN);
+
+        self::assertSame(
+            ['data' => [
+                'characters' => [
+                    ['name' => 'Luke Skywalker', 'primaryFunction' => null],
+                    ['name' => 'R2-D2', 'homePlanet' => null],
+                ]
+            ]],
+            $result->toArray(),
+        );
+    }
+
+    // resolveType (interface)
+
+    public function testInterfaceLaterResolveTypeOverwritesThePreviousOne(): void
     {
         $documentNode1 = Parser::parse('
             interface Character {
@@ -614,7 +771,7 @@ class SchemaExtenderWithDecoratorTest extends TestCase
         );
     }
 
-    public function testInterface1LaterResolveTypeCanUseThePreviousOne(): void
+    public function testInterfaceLaterResolveTypeCanUseThePreviousOne(): void
     {
         $documentNode1 = Parser::parse('
             interface Character {
@@ -683,7 +840,9 @@ class SchemaExtenderWithDecoratorTest extends TestCase
             ],
         ];
 
+        Warning::suppress(Warning::WARNING_FULL_SCHEMA_SCAN);
         $result = GraphQL::executeQuery($schema2, $query, $rootValue);
+        Warning::enable(Warning::WARNING_FULL_SCHEMA_SCAN);
 
         self::assertSame([
             'errors' => [[
@@ -691,7 +850,7 @@ class SchemaExtenderWithDecoratorTest extends TestCase
                 'locations' => [['line' => 2, 'column' => 11]],
                 'path' => ['characters', 0],
                 'extensions' => [
-                    'debugMessage' => 'GraphQL Interface Type `Character` returned `null` from its `resolveType` function for value: {"name":"Luke Skywalker","homePlanet":"Tatooine"}. Switching to slow resolution method using `isTypeOf` of all possible implementations. It requires full schema scan and degrades query performance significantly.  Make sure your `resolveType` always returns valid implementation or throws.'
+                    'debugMessage' => 'Abstract type Character must resolve to an Object type at runtime for field Query.characters with value "{"name":"Luke Skywalker","homePlanet":"Tatooine"}", received "null". Either the Character type should provide a "resolveType" function or each possible type should provide an "isTypeOf" function.'
                 ],
             ]],
             'data' => [
@@ -704,99 +863,5 @@ class SchemaExtenderWithDecoratorTest extends TestCase
         );
     }
 
-    /**
-     * @see it('extends objects by adding implemented interfaces'
-     */
-    public function testInterface2(): void
-    {
-        $documentNode1 = Parser::parse('
-            type Query {
-                someObject: SomeObject
-            }            
-            type SomeObject {
-                foo: String
-            }            
-            interface SomeInterface {
-                foo: String
-            }
-        ');
-        $documentNode2 = Parser::parse('
-            extend type SomeObject implements SomeInterface
-        ');
-        $query = '{
-          someObject {
-            foo
-          }
-        }';
-    }
 
-    /**
-     * @see it('extends objects by adding implemented new interfaces'
-     */
-    public function testInterface3(): void
-    {
-        $documentNode1 = Parser::parse('
-            type Query {
-                someObject: SomeObject
-            }            
-            type SomeObject implements OldInterface {
-                oldField: String
-            }            
-            interface OldInterface {
-                oldField: String
-            }
-        ');
-        $documentNode2 = Parser::parse('
-            extend type SomeObject implements NewInterface {
-                newField: String
-            }            
-            interface NewInterface {
-                newField: String
-            }
-        ');
-        $query = '{
-          someObject {
-            oldField
-            newField
-          }
-        }';
-    }
-
-    /**
-     * @see it('extends interfaces by adding new implemented interfaces'
-     */
-    public function testInterface4(): void
-    {
-        $documentNode1 = Parser::parse('
-      interface SomeInterface {
-        oldField: String
-      }
-
-      interface AnotherInterface implements SomeInterface {
-        oldField: String
-      }
-
-      type SomeObject implements SomeInterface & AnotherInterface {
-        oldField: String
-      }
-
-      type Query {
-        someInterface: SomeInterface
-      }
-        ');
-        $documentNode2 = Parser::parse('
-            extend type SomeObject implements NewInterface {
-                newField: String
-            }            
-            interface NewInterface {
-                newField: String
-            }
-        ');
-        $query = '{
-          someObject {
-            oldField
-            newField
-          }
-        }';
-    }
 }
