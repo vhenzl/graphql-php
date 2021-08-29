@@ -464,21 +464,21 @@ class SchemaExtenderWithDecoratorTest extends TestCase
     public function testInterface1a(): void
     {
         $documentNode1 = Parser::parse('
-            interface Pet {
+            interface Character {
                 name: String
             }
-            type Dog implements Pet {
+            type Human implements Character {
                 name: String
-                woofs: Boolean
+                homePlanet: String
             }
             type Query {
-                pets: [Pet]
+                characters: [Character]
             }
         ');
 
         $typeConfigDecorator1 = static function (array $typeConfig): array {
-            if ($typeConfig['name'] === 'Dog') {
-                $typeConfig['isTypeOf'] = static fn($value) => is_array($value) && array_key_exists('woofs', $value);
+            if ($typeConfig['name'] === 'Human') {
+                $typeConfig['isTypeOf'] = static fn($value) => is_array($value) && array_key_exists('homePlanet', $value);
             }
             return $typeConfig;
         };
@@ -486,15 +486,15 @@ class SchemaExtenderWithDecoratorTest extends TestCase
         $schema1 = BuildSchema::build($documentNode1, $typeConfigDecorator1);
 
         $documentNode2 = Parser::parse('
-            type Cat implements Pet {
+            type Droid implements Character {
                 name: String
-                meows: Boolean
+                primaryFunction: String
             }
         ');
 
         $typeConfigDecorator2 = static function (array $typeConfig): array {
-            if ($typeConfig['name'] === 'Cat') {
-                $typeConfig['isTypeOf'] = static fn($value) => is_array($value) && array_key_exists('meows', $value);
+            if ($typeConfig['name'] === 'Droid') {
+                $typeConfig['isTypeOf'] = static fn($value) => is_array($value) && array_key_exists('primaryFunction', $value);
             }
             return $typeConfig;
         };
@@ -502,21 +502,21 @@ class SchemaExtenderWithDecoratorTest extends TestCase
         $schema2 = SchemaExtender::extend($schema1, $documentNode2, [], $typeConfigDecorator2);
 
         $query = '{
-          pets {
+          characters {
             name
-              ... on Dog {
-              woofs
+              ... on Human {
+              homePlanet
             }
-              ... on Cat {
-              meows
+              ... on Droid {
+              primaryFunction
             }
           }
         }';
 
         $rootValue = [
-            'pets' => [
-                ['name' => 'Odie', 'woofs' => true],
-                ['name' => 'Garfield', 'meows' => false],
+            'characters' => [
+                ['name' => 'Luke Skywalker', 'homePlanet' => 'Tatooine'],
+                ['name' => 'R2-D2', 'primaryFunction' => 'Astromech'],
             ],
         ];
 
@@ -524,9 +524,9 @@ class SchemaExtenderWithDecoratorTest extends TestCase
 
         self::assertSame(
             ['data' => [
-                'pets' => [
-                    ['name' => 'Odie', 'woofs' => true],
-                    ['name' => 'Garfield', 'meows' => false],
+                'characters' => [
+                    ['name' => 'Luke Skywalker', 'homePlanet' => 'Tatooine'],
+                    ['name' => 'R2-D2', 'primaryFunction' => 'Astromech'],
                 ]
             ]],
             $result->toArray(),
@@ -537,23 +537,23 @@ class SchemaExtenderWithDecoratorTest extends TestCase
     public function testInterface1LaterResolveTypeOverwritesThePreviousOne(): void
     {
         $documentNode1 = Parser::parse('
-            interface Pet {
+            interface Character {
                 name: String
             }
-            type Dog implements Pet {
+            type Human implements Character {
                 name: String
-                woofs: Boolean
+                homePlanet: String
             }
             type Query {
-                pets: [Pet]
+                characters: [Character]
             }
         ');
 
         $typeConfigDecorator1 = static function (array $typeConfig): array {
-            if ($typeConfig['name'] === 'Pet') {
+            if ($typeConfig['name'] === 'Character') {
                 $typeConfig['resolveType'] = static function ($value): ?string {
                     if (!is_array($value)) return null;
-                    if (array_key_exists('woofs', $value)) return 'Dog';
+                    if (array_key_exists('homePlanet', $value)) return 'Human';
                     return null;
                 };
             }
@@ -563,17 +563,17 @@ class SchemaExtenderWithDecoratorTest extends TestCase
         $schema1 = BuildSchema::build($documentNode1, $typeConfigDecorator1);
 
         $documentNode2 = Parser::parse('
-            type Cat implements Pet {
+            type Droid implements Character {
                 name: String
-                meows: Boolean
+                primaryFunction: String
             }
         ');
 
         $typeConfigDecorator2 = static function (array $typeConfig): array {
-            if ($typeConfig['name'] === 'Pet') {
+            if ($typeConfig['name'] === 'Character') {
                 $typeConfig['resolveType'] = static function ($value): ?string {
                     if (!is_array($value)) return null;
-                    if (array_key_exists('meows', $value)) return 'Cat';
+                    if (array_key_exists('primaryFunction', $value)) return 'Droid';
                     return null;
                 };
             }
@@ -583,21 +583,21 @@ class SchemaExtenderWithDecoratorTest extends TestCase
         $schema2 = SchemaExtender::extend($schema1, $documentNode2, [], $typeConfigDecorator2);
 
         $query = '{
-          pets {
+          characters {
             name
-              ... on Dog {
-              woofs
+              ... on Human {
+              homePlanet
             }
-              ... on Cat {
-              meows
+              ... on Droid {
+              primaryFunction
             }
           }
         }';
 
         $rootValue = [
-            'pets' => [
-                ['name' => 'Odie', 'woofs' => true],
-                ['name' => 'Garfield', 'meows' => false],
+            'characters' => [
+                ['name' => 'Luke Skywalker', 'homePlanet' => 'Tatooine'],
+                ['name' => 'R2-D2', 'primaryFunction' => 'Astromech'],
             ],
         ];
 
@@ -605,9 +605,9 @@ class SchemaExtenderWithDecoratorTest extends TestCase
 
         self::assertSame(
             ['data' => [
-                'pets' => [
-                    ['name' => 'Odie', 'woofs' => true],
-                    ['name' => 'Garfield', 'meows' => false],
+                'characters' => [
+                    ['name' => 'Luke Skywalker', 'homePlanet' => 'Tatooine'],
+                    ['name' => 'R2-D2', 'primaryFunction' => 'Astromech'],
                 ]
             ]],
             $result->toArray(),
@@ -617,23 +617,23 @@ class SchemaExtenderWithDecoratorTest extends TestCase
     public function testInterface1LaterResolveTypeCanUseThePreviousOne(): void
     {
         $documentNode1 = Parser::parse('
-            interface Pet {
+            interface Character {
                 name: String
             }
-            type Dog implements Pet {
+            type Human implements Character {
                 name: String
-                woofs: Boolean
+                homePlanet: String
             }
             type Query {
-                pets: [Pet]
+                characters: [Character]
             }
         ');
 
         $typeConfigDecorator1 = static function (array $typeConfig): array {
-            if ($typeConfig['name'] === 'Pet') {
+            if ($typeConfig['name'] === 'Character') {
                 $typeConfig['resolveType'] = static function ($value): ?string {
                     if (!is_array($value)) return null;
-                    if (array_key_exists('woofs', $value)) return 'Dog';
+                    if (array_key_exists('homePlanet', $value)) return 'Human';
                     return null;
                 };
             }
@@ -643,18 +643,18 @@ class SchemaExtenderWithDecoratorTest extends TestCase
         $schema1 = BuildSchema::build($documentNode1, $typeConfigDecorator1);
 
         $documentNode2 = Parser::parse('
-            type Cat implements Pet {
+            type Droid implements Character {
                 name: String
-                meows: Boolean
+                primaryFunction: String
             }
         ');
 
         $typeConfigDecorator2 = static function (array $typeConfig): array {
-            if ($typeConfig['name'] === 'Pet') {
+            if ($typeConfig['name'] === 'Character') {
                 $resolveTypeFn = $typeConfig['resolveType'];
                 $typeConfig['resolveType'] = static function ($value, $context, $info) use ($resolveTypeFn): ?string {
                     // first handle the types added by this extension
-                    if (is_array($value) && array_key_exists('meows', $value)) return 'Cat';
+                    if (is_array($value) && array_key_exists('primaryFunction', $value)) return 'Droid';
                     // then let the existing type resolver handle the other types
                     return $resolveTypeFn($value, $context, $info);
                 };
@@ -665,21 +665,21 @@ class SchemaExtenderWithDecoratorTest extends TestCase
         $schema2 = SchemaExtender::extend($schema1, $documentNode2, [], $typeConfigDecorator2);
 
         $query = '{
-          pets {
+          characters {
             name
-              ... on Dog {
-              woofs
+              ... on Human {
+              homePlanet
             }
-              ... on Cat {
-              meows
+              ... on Droid {
+              primaryFunction
             }
           }
         }';
 
         $rootValue = [
-            'pets' => [
-                ['name' => 'Odie', 'woofs' => true],
-                ['name' => 'Garfield', 'meows' => false],
+            'characters' => [
+                ['name' => 'Luke Skywalker', 'homePlanet' => 'Tatooine'],
+                ['name' => 'R2-D2', 'primaryFunction' => 'Astromech'],
             ],
         ];
 
@@ -689,93 +689,16 @@ class SchemaExtenderWithDecoratorTest extends TestCase
             'errors' => [[
                 'message' => 'Internal server error',
                 'locations' => [['line' => 2, 'column' => 11]],
-                'path' => ['pets', 0],
+                'path' => ['characters', 0],
                 'extensions' => [
-                    'debugMessage' => 'GraphQL Interface Type `Pet` returned `null` from its `resolveType` function for value: {"name":"Odie","woofs":true}. Switching to slow resolution method using `isTypeOf` of all possible implementations. It requires full schema scan and degrades query performance significantly.  Make sure your `resolveType` always returns valid implementation or throws.'
+                    'debugMessage' => 'GraphQL Interface Type `Character` returned `null` from its `resolveType` function for value: {"name":"Luke Skywalker","homePlanet":"Tatooine"}. Switching to slow resolution method using `isTypeOf` of all possible implementations. It requires full schema scan and degrades query performance significantly.  Make sure your `resolveType` always returns valid implementation or throws.'
                 ],
             ]],
             'data' => [
-                'pets' => [
+                'characters' => [
                     null,
-                    ['name' => 'Garfield', 'meows' => false],
+                    ['name' => 'R2-D2', 'primaryFunction' => 'Astromech'],
                 ],
-            ]],
-            $result->toArray(DebugFlag::INCLUDE_DEBUG_MESSAGE),
-        );
-    }
-
-    public function testXXX1(): void
-    {
-        $documentNode1 = Parser::parse('
-            interface Pet {
-                name: String
-            }
-            type Dog implements Pet {
-                name: String
-                woofs: Boolean
-            }
-            type Query {
-                pets: [Pet]
-            }
-            type Cat implements Pet {
-                name: String
-                meows: Boolean
-            }
-        ');
-
-        $typeConfigDecorator2 = static function (array $typeConfig): array {
-            if ($typeConfig['name'] === 'Pet') {
-                $resolveTypeFn = $typeConfig['resolveType'] ?? static fn() => null;
-                $typeConfig['resolveType'] = static function ($value, $context, $info) use ($resolveTypeFn): ?string {
-                    // first handle the types added by this extension
-                    if (is_array($value) && array_key_exists('meows', $value)) return 'Cat';
-                    // then let the existing type resolver handle the other types
-                    return $resolveTypeFn($value, $context, $info);
-                };
-            }
-            return $typeConfig;
-        };
-
-        $schema2 = BuildSchema::build($documentNode1, $typeConfigDecorator2);
-
-        $query = '{
-          pets {
-            name
-              ... on Dog {
-              woofs
-            }
-              ... on Cat {
-              meows
-            }
-          }
-        }';
-
-        $rootValue = [
-            'pets' => [
-                ['name' => 'Odie', 'woofs' => true],
-                ['name' => 'Garfield', 'meows' => false],
-            ],
-        ];
-
-        $result = GraphQL::executeQuery($schema2, $query, $rootValue);
-
-        self::assertSame([
-            'errors' => [
-                [
-                    'message' => 'Internal server error',
-                    'locations' => [['line' => 2, 'column' => 11]],
-                    'path' => ['pets', 0],
-                    'extensions' => [
-                        'debugMessage' => 'GraphQL Interface Type `Pet` returned `null` from its `resolveType` function for value: {"name":"Odie","woofs":true}. Switching to slow resolution method using `isTypeOf` of all possible implementations. It requires full schema scan and degrades query performance significantly.  Make sure your `resolveType` always returns valid implementation or throws.'
-                    ],
-
-                ]
-            ],
-            'data' => [
-                'pets' => [
-                    null,
-                    ['name' => 'Garfield', 'meows' => false],
-                ]
             ]],
             $result->toArray(DebugFlag::INCLUDE_DEBUG_MESSAGE),
         );
