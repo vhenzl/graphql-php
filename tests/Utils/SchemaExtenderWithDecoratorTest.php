@@ -330,7 +330,7 @@ class SchemaExtenderWithDecoratorTest extends TestCase
 
         $typeConfigDecorator1 = static function (array $typeConfig): array {
             if ($typeConfig['name'] === 'Query') {
-                $typeConfig['resolveField'] = static function ($source, $args, $context, $info) {
+                $typeConfig['resolveField'] = static function ($source, $args, $context, $info): ?string {
                     if ($info->fieldName === 'hello') {
                         return 'Hey!';
                     }
@@ -352,7 +352,7 @@ class SchemaExtenderWithDecoratorTest extends TestCase
 
         $typeConfigDecorator2 = static function (array $typeConfig): array {
             if ($typeConfig['name'] === 'Query') {
-                $typeConfig['resolveField'] = static function ($source, $args, $context, $info) {
+                $typeConfig['resolveField'] = static function ($source, $args, $context, $info): ?string {
                     if ($info->fieldName === 'bye') {
                         return 'See ya!';
                     }
@@ -386,7 +386,7 @@ class SchemaExtenderWithDecoratorTest extends TestCase
 
         $typeConfigDecorator1 = static function (array $typeConfig): array {
             if ($typeConfig['name'] === 'Query') {
-                $typeConfig['resolveField'] = static function ($source, $args, $context, $info) {
+                $typeConfig['resolveField'] = static function ($source, $args, $context, $info): ?string {
                     if ($info->fieldName === 'hello') {
                         return 'Hey!';
                     }
