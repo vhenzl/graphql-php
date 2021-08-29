@@ -141,7 +141,6 @@ class SchemaExtenderWithDecoratorTest extends TestCase
             if ($typeConfig['name'] === 'Query') {
                 $fieldsFn             = $typeConfig['fields'];
                 $typeConfig['fields'] = static function () use ($fieldsFn): array {
-                    // TODO: assert callable?
                     $fields                     = $fieldsFn();
                     $fields['hello']['resolve'] = static fn (): string => 'Hello!';
 
@@ -164,7 +163,6 @@ class SchemaExtenderWithDecoratorTest extends TestCase
             if ($typeConfig['name'] === 'Query') {
                 $fieldsFn             = $typeConfig['fields'];
                 $typeConfig['fields'] = static function () use ($fieldsFn): array {
-                    // TODO: assert callable?
                     $fields                   = $fieldsFn();
                     $fields['bye']['resolve'] = static fn (): string => 'Bye!';
 
@@ -187,9 +185,8 @@ class SchemaExtenderWithDecoratorTest extends TestCase
             if ($typeConfig['name'] === 'Query') {
                 $fieldsFn             = $typeConfig['fields'];
                 $typeConfig['fields'] = static function () use ($fieldsFn): array {
-                    // TODO: assert callable?
-                    $fields                  = $fieldsFn();
-                    $fields['bye']['thanks'] = static fn (): string => 'Thanks!';
+                    $fields                      = $fieldsFn();
+                    $fields['thanks']['resolve'] = static fn (): string => 'Thanks!';
 
                     return $fields;
                 };
@@ -239,11 +236,10 @@ class SchemaExtenderWithDecoratorTest extends TestCase
             if ($typeConfig['name'] === 'Query') {
                 $fieldsFn             = $typeConfig['fields'];
                 $typeConfig['fields'] = static function () use ($fieldsFn): array {
-                    // TODO: assert callable?
-                    $fields                     = $fieldsFn();
-                    $fields['hello']['resolve'] = static fn (): string => 'Hello!';
-                    $fields['bye']['resolve']   = static fn (): string => 'Bye!';
-                    $fields['bye']['thanks']    = static fn (): string => 'Thanks!';
+                    $fields                      = $fieldsFn();
+                    $fields['hello']['resolve']  = static fn (): string => 'Hello!';
+                    $fields['bye']['resolve']    = static fn (): string => 'Bye!';
+                    $fields['thanks']['resolve'] = static fn (): string => 'Thanks!';
 
                     return $fields;
                 };
@@ -435,7 +431,7 @@ class SchemaExtenderWithDecoratorTest extends TestCase
         self::assertSame(['data' => ['hello' => 'Hello!', 'bye' => 'Bye!']], $result->toArray());
     }
 
-    public function testIndividualFieldResolversHasPrecedenceOverTypeLevelResolverRegardlessOrder(): void
+    public function testIndividualFieldResolversHasPrecedenceOverTypeLevelResolverRegardlessOfOrder(): void
     {
         $documentNode1 = Parser::parse('
             type Query {
