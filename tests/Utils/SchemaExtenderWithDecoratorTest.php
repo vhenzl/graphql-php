@@ -749,11 +749,7 @@ class SchemaExtenderWithDecoratorTest extends TestCase
         $typeConfigDecorator1 = static function (array $typeConfig): array {
             if ($typeConfig['name'] === 'Character') {
                 $typeConfig['resolveType'] = static function ($value): ?string {
-                    if (! is_array($value)) {
-                        return null;
-                    }
-
-                    if (array_key_exists('homePlanet', $value)) {
+                    if (is_array($value) && array_key_exists('homePlanet', $value)) {
                         return 'Human';
                     }
 
@@ -776,11 +772,7 @@ class SchemaExtenderWithDecoratorTest extends TestCase
         $typeConfigDecorator2 = static function (array $typeConfig): array {
             if ($typeConfig['name'] === 'Character') {
                 $typeConfig['resolveType'] = static function ($value): ?string {
-                    if (! is_array($value)) {
-                        return null;
-                    }
-
-                    if (array_key_exists('primaryFunction', $value)) {
+                    if (is_array($value) && array_key_exists('primaryFunction', $value)) {
                         return 'Droid';
                     }
 
@@ -845,11 +837,7 @@ class SchemaExtenderWithDecoratorTest extends TestCase
         $typeConfigDecorator1 = static function (array $typeConfig): array {
             if ($typeConfig['name'] === 'Character') {
                 $typeConfig['resolveType'] = static function ($value): ?string {
-                    if (! is_array($value)) {
-                        return null;
-                    }
-
-                    if (array_key_exists('homePlanet', $value)) {
+                    if (is_array($value) && array_key_exists('homePlanet', $value)) {
                         return 'Human';
                     }
 
