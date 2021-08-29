@@ -863,5 +863,4 @@ class SchemaExtenderWithDecoratorTest extends TestCase
         );
     }
 
-
 }
