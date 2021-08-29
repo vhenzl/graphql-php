@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 namespace GraphQL\Tests\Utils;
 
@@ -9,6 +11,9 @@ use GraphQL\Language\Parser;
 use GraphQL\Utils\BuildSchema;
 use GraphQL\Utils\SchemaExtender;
 use PHPUnit\Framework\TestCase;
+
+use function array_key_exists;
+use function is_array;
 
 class SchemaExtenderWithDecoratorTest extends TestCase
 {
@@ -30,16 +35,17 @@ class SchemaExtenderWithDecoratorTest extends TestCase
 
         $typeConfigDecorator1 = static function (array $typeConfig): array {
             if ($typeConfig['name'] === 'Query') {
-                $fieldsFn = $typeConfig['fields'];
+                $fieldsFn             = $typeConfig['fields'];
                 $typeConfig['fields'] = static function () use ($fieldsFn): array {
-                    $fields = $fieldsFn();
+                    $fields                         = $fieldsFn();
                     $fields['hello']['description'] = 'My description';
+
                     return $fields;
                 };
             }
+
             return $typeConfig;
         };
-
         BuildSchema::build($documentNode1, $typeConfigDecorator1);
     }
 
@@ -58,17 +64,16 @@ class SchemaExtenderWithDecoratorTest extends TestCase
 
         $typeConfigDecorator1 = static function (array $typeConfig): array {
             if ($typeConfig['name'] === 'Query') {
-                $fieldsFn = $typeConfig['fields'];
+                $fieldsFn             = $typeConfig['fields'];
                 $typeConfig['fields'] = static function () use ($fieldsFn): array {
                     $fields = $fieldsFn();
                     self::assertArrayNotHasKey('bye', $fields);
-                    $fields['bye'] = [
-                        'type' => 'String',
-                        'name' => 'bye',
-                    ];
+                    $fields['bye'] = ['type' => 'String', 'name' => 'bye'];
+
                     return $fields;
                 };
             }
+
             return $typeConfig;
         };
 
@@ -89,10 +94,8 @@ class SchemaExtenderWithDecoratorTest extends TestCase
         ');
 
         $typeConfigDecorator1 = static function (array $typeConfig): array {
-            $typeConfig['MyType'] = [
-                'name' => 'MyType',
-                'resolveFields' => static fn() => 'Nope!',
-            ];
+            $typeConfig['MyType'] = ['name' => 'MyType', 'resolveFields' => static fn () => 'Nope!'];
+
             return $typeConfig;
         };
 
@@ -117,6 +120,7 @@ class SchemaExtenderWithDecoratorTest extends TestCase
             if ($typeConfig['name'] === 'Query') {
                 $typeConfig['description'] = 'My description';
             }
+
             return $typeConfig;
         };
 
@@ -135,14 +139,16 @@ class SchemaExtenderWithDecoratorTest extends TestCase
 
         $typeConfigDecorator1 = static function (array $typeConfig): array {
             if ($typeConfig['name'] === 'Query') {
-                $fieldsFn = $typeConfig['fields'];
+                $fieldsFn             = $typeConfig['fields'];
                 $typeConfig['fields'] = static function () use ($fieldsFn): array {
                     // TODO: assert callable?
-                    $fields = $fieldsFn();
-                    $fields['hello']['resolve'] = static fn(): string => 'Hey!';
+                    $fields                     = $fieldsFn();
+                    $fields['hello']['resolve'] = static fn (): string => 'Hey!';
+
                     return $fields;
                 };
             }
+
             return $typeConfig;
         };
 
@@ -156,14 +162,16 @@ class SchemaExtenderWithDecoratorTest extends TestCase
 
         $typeConfigDecorator2 = static function (array $typeConfig): array {
             if ($typeConfig['name'] === 'Query') {
-                $fieldsFn = $typeConfig['fields'];
+                $fieldsFn             = $typeConfig['fields'];
                 $typeConfig['fields'] = static function () use ($fieldsFn): array {
                     // TODO: assert callable?
-                    $fields = $fieldsFn();
-                    $fields['bye']['resolve'] = static fn(): string => 'See ya!';
+                    $fields                   = $fieldsFn();
+                    $fields['bye']['resolve'] = static fn (): string => 'See ya!';
+
                     return $fields;
                 };
             }
+
             return $typeConfig;
         };
 
@@ -177,14 +185,16 @@ class SchemaExtenderWithDecoratorTest extends TestCase
 
         $typeConfigDecorator3 = static function (array $typeConfig): array {
             if ($typeConfig['name'] === 'Query') {
-                $fieldsFn = $typeConfig['fields'];
+                $fieldsFn             = $typeConfig['fields'];
                 $typeConfig['fields'] = static function () use ($fieldsFn): array {
                     // TODO: assert callable?
-                    $fields = $fieldsFn();
-                    $fields['bye']['thanks'] = static fn(): string => 'Cheers!';
+                    $fields                  = $fieldsFn();
+                    $fields['bye']['thanks'] = static fn (): string => 'Cheers!';
+
                     return $fields;
                 };
             }
+
             return $typeConfig;
         };
 
@@ -227,16 +237,18 @@ class SchemaExtenderWithDecoratorTest extends TestCase
 
         $typeConfigDecorator = static function (array $typeConfig): array {
             if ($typeConfig['name'] === 'Query') {
-                $fieldsFn = $typeConfig['fields'];
+                $fieldsFn             = $typeConfig['fields'];
                 $typeConfig['fields'] = static function () use ($fieldsFn): array {
                     // TODO: assert callable?
-                    $fields = $fieldsFn();
-                    $fields['hello']['resolve'] = static fn(): string => 'Hey!';
-                    $fields['bye']['resolve'] = static fn(): string => 'See ya!';
-                    $fields['bye']['thanks'] = static fn(): string => 'Cheers!';
+                    $fields                     = $fieldsFn();
+                    $fields['hello']['resolve'] = static fn (): string => 'Hey!';
+                    $fields['bye']['resolve']   = static fn (): string => 'See ya!';
+                    $fields['bye']['thanks']    = static fn (): string => 'Cheers!';
+
                     return $fields;
                 };
             }
+
             return $typeConfig;
         };
 
@@ -270,13 +282,15 @@ class SchemaExtenderWithDecoratorTest extends TestCase
 
         $typeConfigDecorator1 = static function (array $typeConfig): array {
             if ($typeConfig['name'] === 'Query') {
-                $fieldsFn = $typeConfig['fields'];
+                $fieldsFn             = $typeConfig['fields'];
                 $typeConfig['fields'] = static function () use ($fieldsFn): array {
-                    $fields = $fieldsFn();
-                    $fields['hello']['resolve'] = static fn(): string => 'Hey!';
+                    $fields                     = $fieldsFn();
+                    $fields['hello']['resolve'] = static fn (): string => 'Hey!';
+
                     return $fields;
                 };
             }
+
             return $typeConfig;
         };
 
@@ -290,14 +304,16 @@ class SchemaExtenderWithDecoratorTest extends TestCase
 
         $typeConfigDecorator2 = static function (array $typeConfig): array {
             if ($typeConfig['name'] === 'Query') {
-                $fieldsFn = $typeConfig['fields'];
+                $fieldsFn             = $typeConfig['fields'];
                 $typeConfig['fields'] = static function () use ($fieldsFn): array {
-                    $fields = $fieldsFn();
-                    $fields['hello']['resolve'] = static fn(): string => 'Hello!';
-                    $fields['bye']['resolve'] = static fn(): string => 'Bye!';
+                    $fields                     = $fieldsFn();
+                    $fields['hello']['resolve'] = static fn (): string => 'Hello!';
+                    $fields['bye']['resolve']   = static fn (): string => 'Bye!';
+
                     return $fields;
                 };
             }
+
             return $typeConfig;
         };
 
@@ -318,9 +334,11 @@ class SchemaExtenderWithDecoratorTest extends TestCase
                     if ($info->fieldName === 'hello') {
                         return 'Hey!';
                     }
+
                     return null;
                 };
             }
+
             return $typeConfig;
         };
 
@@ -338,9 +356,11 @@ class SchemaExtenderWithDecoratorTest extends TestCase
                     if ($info->fieldName === 'bye') {
                         return 'See ya!';
                     }
+
                     return null;
                 };
             }
+
             return $typeConfig;
         };
 
@@ -351,7 +371,7 @@ class SchemaExtenderWithDecoratorTest extends TestCase
             bye
         }';
 
-        $result = GraphQL::executeQuery($schema2, $query, null, null, null, null, fn() => '*default*');
+        $result = GraphQL::executeQuery($schema2, $query, null, null, null, null, static fn () => '*default*');
 
         self::assertSame(['data' => ['hello' => '*default*', 'bye' => 'See ya!']], $result->toArray());
     }
@@ -370,9 +390,11 @@ class SchemaExtenderWithDecoratorTest extends TestCase
                     if ($info->fieldName === 'hello') {
                         return 'Hey!';
                     }
+
                     return null;
                 };
             }
+
             return $typeConfig;
         };
 
@@ -386,16 +408,18 @@ class SchemaExtenderWithDecoratorTest extends TestCase
 
         $typeConfigDecorator2 = static function (array $typeConfig): array {
             if ($typeConfig['name'] === 'Query') {
-                $resolveFieldFn = $typeConfig['resolveField'];
+                $resolveFieldFn             = $typeConfig['resolveField'];
                 $typeConfig['resolveField'] = static function ($source, $args, $context, $info) use ($resolveFieldFn) {
                     // first handle the fields added by this extension
                     if ($info->fieldName === 'bye') {
                         return 'See ya!';
                     }
+
                     // then let the existing resolver handle the original fields
                     return $resolveFieldFn($source, $args, $context, $info);
                 };
             }
+
             return $typeConfig;
         };
 
@@ -406,7 +430,7 @@ class SchemaExtenderWithDecoratorTest extends TestCase
             bye
         }';
 
-        $result = GraphQL::executeQuery($schema2, $query, null, null, null, null, fn() => '*default*');
+        $result = GraphQL::executeQuery($schema2, $query, null, null, null, null, static fn () => '*default*');
 
         self::assertSame(['data' => ['hello' => 'Hey!', 'bye' => 'See ya!']], $result->toArray());
     }
@@ -421,8 +445,9 @@ class SchemaExtenderWithDecoratorTest extends TestCase
 
         $typeConfigDecorator1 = static function (array $typeConfig): array {
             if ($typeConfig['name'] === 'Query') {
-                $typeConfig['resolveField'] = static fn() => '*query*';
+                $typeConfig['resolveField'] = static fn () => '*query*';
             }
+
             return $typeConfig;
         };
 
@@ -436,14 +461,16 @@ class SchemaExtenderWithDecoratorTest extends TestCase
 
         $typeConfigDecorator2 = static function (array $typeConfig): array {
             if ($typeConfig['name'] === 'Query') {
-                $fieldsFn = $typeConfig['fields'];
+                $fieldsFn             = $typeConfig['fields'];
                 $typeConfig['fields'] = static function () use ($fieldsFn): array {
-                    $fields = $fieldsFn();
-                    $fields['hello']['resolve'] = static fn(): string => 'Hello!';
-                    $fields['bye']['resolve'] = static fn(): string => 'Bye!';
+                    $fields                     = $fieldsFn();
+                    $fields['hello']['resolve'] = static fn (): string => 'Hello!';
+                    $fields['bye']['resolve']   = static fn (): string => 'Bye!';
+
                     return $fields;
                 };
             }
+
             return $typeConfig;
         };
 
@@ -478,8 +505,9 @@ class SchemaExtenderWithDecoratorTest extends TestCase
 
         $typeConfigDecorator1 = static function (array $typeConfig): array {
             if ($typeConfig['name'] === 'Human') {
-                $typeConfig['isTypeOf'] = static fn($value) => is_array($value) && array_key_exists('homePlanet', $value);
+                $typeConfig['isTypeOf'] = static fn ($value) => is_array($value) && array_key_exists('homePlanet', $value);
             }
+
             return $typeConfig;
         };
 
@@ -494,8 +522,9 @@ class SchemaExtenderWithDecoratorTest extends TestCase
 
         $typeConfigDecorator2 = static function (array $typeConfig): array {
             if ($typeConfig['name'] === 'Droid') {
-                $typeConfig['isTypeOf'] = static fn($value) => is_array($value) && array_key_exists('primaryFunction', $value);
+                $typeConfig['isTypeOf'] = static fn ($value) => is_array($value) && array_key_exists('primaryFunction', $value);
             }
+
             return $typeConfig;
         };
 
@@ -524,12 +553,14 @@ class SchemaExtenderWithDecoratorTest extends TestCase
         $result = GraphQL::executeQuery($schema2, $query, $rootValue);
 
         self::assertSame(
-            ['data' => [
-                'characters' => [
-                    ['name' => 'Luke Skywalker', 'homePlanet' => 'Tatooine'],
-                    ['name' => 'R2-D2', 'primaryFunction' => 'Astromech'],
-                ]
-            ]],
+            [
+                'data' => [
+                    'characters' => [
+                        ['name' => 'Luke Skywalker', 'homePlanet' => 'Tatooine'],
+                        ['name' => 'R2-D2', 'primaryFunction' => 'Astromech'],
+                    ],
+                ],
+            ],
             $result->toArray(),
         );
     }
@@ -560,11 +591,13 @@ class SchemaExtenderWithDecoratorTest extends TestCase
 
         $typeConfigDecorator2 = static function (array $typeConfig): array {
             if ($typeConfig['name'] === 'Human') {
-                $typeConfig['isTypeOf'] = static fn($value) => is_array($value) && array_key_exists('homePlanet', $value);
+                $typeConfig['isTypeOf'] = static fn ($value) => is_array($value) && array_key_exists('homePlanet', $value);
             }
+
             if ($typeConfig['name'] === 'Droid') {
-                $typeConfig['isTypeOf'] = static fn($value) => is_array($value) && array_key_exists('primaryFunction', $value);
+                $typeConfig['isTypeOf'] = static fn ($value) => is_array($value) && array_key_exists('primaryFunction', $value);
             }
+
             return $typeConfig;
         };
 
@@ -595,12 +628,14 @@ class SchemaExtenderWithDecoratorTest extends TestCase
         Warning::enable(Warning::WARNING_FULL_SCHEMA_SCAN);
 
         self::assertSame(
-            ['data' => [
-                'characters' => [
-                    ['name' => 'Luke Skywalker', 'homePlanet' => 'Tatooine'],
-                    ['name' => 'R2-D2', 'primaryFunction' => 'Astromech'],
-                ]
-            ]],
+            [
+                'data' => [
+                    'characters' => [
+                        ['name' => 'Luke Skywalker', 'homePlanet' => 'Tatooine'],
+                        ['name' => 'R2-D2', 'primaryFunction' => 'Astromech'],
+                    ],
+                ],
+            ],
             $result->toArray(DebugFlag::INCLUDE_DEBUG_MESSAGE),
         );
     }
@@ -626,8 +661,9 @@ class SchemaExtenderWithDecoratorTest extends TestCase
 
         $typeConfigDecorator1 = static function (array $typeConfig): array {
             if ($typeConfig['name'] === 'Human') {
-                $typeConfig['isTypeOf'] = static fn($value) => is_array($value) && array_key_exists('homePlanet', $value);
+                $typeConfig['isTypeOf'] = static fn ($value) => is_array($value) && array_key_exists('homePlanet', $value);
             }
+
             return $typeConfig;
         };
 
@@ -644,11 +680,13 @@ class SchemaExtenderWithDecoratorTest extends TestCase
             // TODO: What would be a valid, real-world use-case for overwriting isTypeOf?
             // changing human to droid and droid to human here
             if ($typeConfig['name'] === 'Human') {
-                $typeConfig['isTypeOf'] = static fn($value) => is_array($value) && array_key_exists('primaryFunction', $value);
+                $typeConfig['isTypeOf'] = static fn ($value) => is_array($value) && array_key_exists('primaryFunction', $value);
             }
+
             if ($typeConfig['name'] === 'Droid') {
-                $typeConfig['isTypeOf'] = static fn($value) => is_array($value) && array_key_exists('homePlanet', $value);
+                $typeConfig['isTypeOf'] = static fn ($value) => is_array($value) && array_key_exists('homePlanet', $value);
             }
+
             return $typeConfig;
         };
 
@@ -679,12 +717,14 @@ class SchemaExtenderWithDecoratorTest extends TestCase
         Warning::enable(Warning::WARNING_FULL_SCHEMA_SCAN);
 
         self::assertSame(
-            ['data' => [
-                'characters' => [
-                    ['name' => 'Luke Skywalker', 'primaryFunction' => null],
-                    ['name' => 'R2-D2', 'homePlanet' => null],
-                ]
-            ]],
+            [
+                'data' => [
+                    'characters' => [
+                        ['name' => 'Luke Skywalker', 'primaryFunction' => null],
+                        ['name' => 'R2-D2', 'homePlanet' => null],
+                    ],
+                ],
+            ],
             $result->toArray(),
         );
     }
@@ -709,11 +749,18 @@ class SchemaExtenderWithDecoratorTest extends TestCase
         $typeConfigDecorator1 = static function (array $typeConfig): array {
             if ($typeConfig['name'] === 'Character') {
                 $typeConfig['resolveType'] = static function ($value): ?string {
-                    if (!is_array($value)) return null;
-                    if (array_key_exists('homePlanet', $value)) return 'Human';
+                    if (! is_array($value)) {
+                        return null;
+                    }
+
+                    if (array_key_exists('homePlanet', $value)) {
+                        return 'Human';
+                    }
+
                     return null;
                 };
             }
+
             return $typeConfig;
         };
 
@@ -729,11 +776,18 @@ class SchemaExtenderWithDecoratorTest extends TestCase
         $typeConfigDecorator2 = static function (array $typeConfig): array {
             if ($typeConfig['name'] === 'Character') {
                 $typeConfig['resolveType'] = static function ($value): ?string {
-                    if (!is_array($value)) return null;
-                    if (array_key_exists('primaryFunction', $value)) return 'Droid';
+                    if (! is_array($value)) {
+                        return null;
+                    }
+
+                    if (array_key_exists('primaryFunction', $value)) {
+                        return 'Droid';
+                    }
+
                     return null;
                 };
             }
+
             return $typeConfig;
         };
 
@@ -761,12 +815,14 @@ class SchemaExtenderWithDecoratorTest extends TestCase
         $result = GraphQL::executeQuery($schema2, $query, $rootValue);
 
         self::assertSame(
-            ['data' => [
-                'characters' => [
-                    ['name' => 'Luke Skywalker', 'homePlanet' => 'Tatooine'],
-                    ['name' => 'R2-D2', 'primaryFunction' => 'Astromech'],
-                ]
-            ]],
+            [
+                'data' => [
+                    'characters' => [
+                        ['name' => 'Luke Skywalker', 'homePlanet' => 'Tatooine'],
+                        ['name' => 'R2-D2', 'primaryFunction' => 'Astromech'],
+                    ],
+                ],
+            ],
             $result->toArray(),
         );
     }
@@ -789,11 +845,18 @@ class SchemaExtenderWithDecoratorTest extends TestCase
         $typeConfigDecorator1 = static function (array $typeConfig): array {
             if ($typeConfig['name'] === 'Character') {
                 $typeConfig['resolveType'] = static function ($value): ?string {
-                    if (!is_array($value)) return null;
-                    if (array_key_exists('homePlanet', $value)) return 'Human';
+                    if (! is_array($value)) {
+                        return null;
+                    }
+
+                    if (array_key_exists('homePlanet', $value)) {
+                        return 'Human';
+                    }
+
                     return null;
                 };
             }
+
             return $typeConfig;
         };
 
@@ -808,14 +871,18 @@ class SchemaExtenderWithDecoratorTest extends TestCase
 
         $typeConfigDecorator2 = static function (array $typeConfig): array {
             if ($typeConfig['name'] === 'Character') {
-                $resolveTypeFn = $typeConfig['resolveType'];
+                $resolveTypeFn             = $typeConfig['resolveType'];
                 $typeConfig['resolveType'] = static function ($value, $context, $info) use ($resolveTypeFn): ?string {
                     // first handle the types added by this extension
-                    if (is_array($value) && array_key_exists('primaryFunction', $value)) return 'Droid';
+                    if (is_array($value) && array_key_exists('primaryFunction', $value)) {
+                        return 'Droid';
+                    }
+
                     // then let the existing type resolver handle the other types
                     return $resolveTypeFn($value, $context, $info);
                 };
             }
+
             return $typeConfig;
         };
 
@@ -844,23 +911,24 @@ class SchemaExtenderWithDecoratorTest extends TestCase
         $result = GraphQL::executeQuery($schema2, $query, $rootValue);
         Warning::enable(Warning::WARNING_FULL_SCHEMA_SCAN);
 
-        self::assertSame([
-            'errors' => [[
-                'message' => 'Internal server error',
-                'locations' => [['line' => 2, 'column' => 11]],
-                'path' => ['characters', 0],
-                'extensions' => [
-                    'debugMessage' => 'Abstract type Character must resolve to an Object type at runtime for field Query.characters with value "{"name":"Luke Skywalker","homePlanet":"Tatooine"}", received "null". Either the Character type should provide a "resolveType" function or each possible type should provide an "isTypeOf" function.'
+        self::assertSame(
+            [
+                'errors' => [
+                    [
+                        'message' => 'Internal server error',
+                        'locations' => [['line' => 2, 'column' => 11]],
+                        'path' => ['characters', 0],
+                        'extensions' => ['debugMessage' => 'Abstract type Character must resolve to an Object type at runtime for field Query.characters with value "{"name":"Luke Skywalker","homePlanet":"Tatooine"}", received "null". Either the Character type should provide a "resolveType" function or each possible type should provide an "isTypeOf" function.'],
+                    ],
                 ],
-            ]],
-            'data' => [
-                'characters' => [
-                    null,
-                    ['name' => 'R2-D2', 'primaryFunction' => 'Astromech'],
+                'data' => [
+                    'characters' => [
+                        null,
+                        ['name' => 'R2-D2', 'primaryFunction' => 'Astromech'],
+                    ],
                 ],
-            ]],
+            ],
             $result->toArray(DebugFlag::INCLUDE_DEBUG_MESSAGE),
         );
     }
-
 }
