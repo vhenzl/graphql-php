@@ -143,7 +143,7 @@ class SchemaExtenderWithDecoratorTest extends TestCase
                 $typeConfig['fields'] = static function () use ($fieldsFn): array {
                     // TODO: assert callable?
                     $fields                     = $fieldsFn();
-                    $fields['hello']['resolve'] = static fn (): string => 'Hey!';
+                    $fields['hello']['resolve'] = static fn (): string => 'Hello!';
 
                     return $fields;
                 };
@@ -166,7 +166,7 @@ class SchemaExtenderWithDecoratorTest extends TestCase
                 $typeConfig['fields'] = static function () use ($fieldsFn): array {
                     // TODO: assert callable?
                     $fields                   = $fieldsFn();
-                    $fields['bye']['resolve'] = static fn (): string => 'See ya!';
+                    $fields['bye']['resolve'] = static fn (): string => 'Bye!';
 
                     return $fields;
                 };
@@ -189,7 +189,7 @@ class SchemaExtenderWithDecoratorTest extends TestCase
                 $typeConfig['fields'] = static function () use ($fieldsFn): array {
                     // TODO: assert callable?
                     $fields                  = $fieldsFn();
-                    $fields['bye']['thanks'] = static fn (): string => 'Cheers!';
+                    $fields['bye']['thanks'] = static fn (): string => 'Thanks!';
 
                     return $fields;
                 };
@@ -208,7 +208,7 @@ class SchemaExtenderWithDecoratorTest extends TestCase
 
         $result = GraphQL::executeQuery($schema3, $query);
 
-        self::assertSame(['data' => ['hello' => 'Hey!', 'bye' => 'See ya!', 'thanks' => 'Cheers!']], $result->toArray());
+        self::assertSame(['data' => ['hello' => 'Hello!', 'bye' => 'Bye!', 'thanks' => 'Cheers!']], $result->toArray());
     }
 
     public function testDecoratorAddsAllIndividualFieldResolversInTheLastExtend(): void
@@ -241,9 +241,9 @@ class SchemaExtenderWithDecoratorTest extends TestCase
                 $typeConfig['fields'] = static function () use ($fieldsFn): array {
                     // TODO: assert callable?
                     $fields                     = $fieldsFn();
-                    $fields['hello']['resolve'] = static fn (): string => 'Hey!';
-                    $fields['bye']['resolve']   = static fn (): string => 'See ya!';
-                    $fields['bye']['thanks']    = static fn (): string => 'Cheers!';
+                    $fields['hello']['resolve'] = static fn (): string => 'Hello!';
+                    $fields['bye']['resolve']   = static fn (): string => 'Bye!';
+                    $fields['bye']['thanks']    = static fn (): string => 'Thanks!';
 
                     return $fields;
                 };
@@ -262,7 +262,7 @@ class SchemaExtenderWithDecoratorTest extends TestCase
 
         $result = GraphQL::executeQuery($schema3, $query);
 
-        self::assertSame(['data' => ['hello' => 'Hey!', 'bye' => 'See ya!', 'thanks' => 'Cheers!']], $result->toArray());
+        self::assertSame(['data' => ['hello' => 'Hello!', 'bye' => 'Bye!', 'thanks' => 'Cheers!']], $result->toArray());
     }
 
     /**
@@ -285,7 +285,7 @@ class SchemaExtenderWithDecoratorTest extends TestCase
                 $fieldsFn             = $typeConfig['fields'];
                 $typeConfig['fields'] = static function () use ($fieldsFn): array {
                     $fields                     = $fieldsFn();
-                    $fields['hello']['resolve'] = static fn (): string => 'Hey!';
+                    $fields['hello']['resolve'] = static fn (): string => 'Hello!';
 
                     return $fields;
                 };
@@ -307,7 +307,7 @@ class SchemaExtenderWithDecoratorTest extends TestCase
                 $fieldsFn             = $typeConfig['fields'];
                 $typeConfig['fields'] = static function () use ($fieldsFn): array {
                     $fields                     = $fieldsFn();
-                    $fields['hello']['resolve'] = static fn (): string => 'Hello!';
+                    $fields['hello']['resolve'] = static fn (): string => 'Hey!';
                     $fields['bye']['resolve']   = static fn (): string => 'Bye!';
 
                     return $fields;
@@ -332,7 +332,7 @@ class SchemaExtenderWithDecoratorTest extends TestCase
             if ($typeConfig['name'] === 'Query') {
                 $typeConfig['resolveField'] = static function ($source, $args, $context, $info): ?string {
                     if ($info->fieldName === 'hello') {
-                        return 'Hey!';
+                        return 'Hello!';
                     }
 
                     return null;
@@ -354,7 +354,7 @@ class SchemaExtenderWithDecoratorTest extends TestCase
             if ($typeConfig['name'] === 'Query') {
                 $typeConfig['resolveField'] = static function ($source, $args, $context, $info): ?string {
                     if ($info->fieldName === 'bye') {
-                        return 'See ya!';
+                        return 'Bye!';
                     }
 
                     return null;
@@ -373,7 +373,7 @@ class SchemaExtenderWithDecoratorTest extends TestCase
 
         $result = GraphQL::executeQuery($schema2, $query, null, null, null, null, static fn () => '*default*');
 
-        self::assertSame(['data' => ['hello' => '*default*', 'bye' => 'See ya!']], $result->toArray());
+        self::assertSame(['data' => ['hello' => '*default*', 'bye' => 'Bye!']], $result->toArray());
     }
 
     public function testLaterTypeLevelResolverCanUseThePreviousOne(): void
@@ -388,7 +388,7 @@ class SchemaExtenderWithDecoratorTest extends TestCase
             if ($typeConfig['name'] === 'Query') {
                 $typeConfig['resolveField'] = static function ($source, $args, $context, $info): ?string {
                     if ($info->fieldName === 'hello') {
-                        return 'Hey!';
+                        return 'Hello!';
                     }
 
                     return null;
@@ -412,7 +412,7 @@ class SchemaExtenderWithDecoratorTest extends TestCase
                 $typeConfig['resolveField'] = static function ($source, $args, $context, $info) use ($resolveFieldFn) {
                     // first handle the fields added by this extension
                     if ($info->fieldName === 'bye') {
-                        return 'See ya!';
+                        return 'Bye!';
                     }
 
                     // then let the existing resolver handle the original fields
@@ -432,7 +432,7 @@ class SchemaExtenderWithDecoratorTest extends TestCase
 
         $result = GraphQL::executeQuery($schema2, $query, null, null, null, null, static fn () => '*default*');
 
-        self::assertSame(['data' => ['hello' => 'Hey!', 'bye' => 'See ya!']], $result->toArray());
+        self::assertSame(['data' => ['hello' => 'Hello!', 'bye' => 'Bye!']], $result->toArray());
     }
 
     public function testIndividualFieldResolversHasPrecedenceOverTypeLevelResolverRegardlessOrder(): void
