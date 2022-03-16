@@ -7,6 +7,7 @@ use Closure;
 use DMS\PHPUnitExtensions\ArraySubset\ArraySubsetAsserts;
 use GraphQL\Error\DebugFlag;
 use GraphQL\Error\Error;
+use GraphQL\Error\InvariantViolation;
 use GraphQL\GraphQL;
 use GraphQL\Language\AST\DirectiveDefinitionNode;
 use GraphQL\Language\AST\DocumentNode;
@@ -35,7 +36,6 @@ use GraphQL\Type\Introspection;
 use GraphQL\Type\Schema;
 use GraphQL\Utils\BuildSchema;
 use GraphQL\Utils\SchemaPrinter;
-use GraphQL\Utils\Utils;
 use function preg_match;
 use function preg_replace;
 use function property_exists;
@@ -52,11 +52,15 @@ class BuildSchemaTest extends TestCaseBase
     {
         $trimmedStr = trim($str, "\n");
         $trimmedStr = preg_replace('/[ \t]*$/', '', $trimmedStr);
+        assert(is_string($trimmedStr));
 
         preg_match('/^[ \t]*/', $trimmedStr, $indentMatch);
         $indent = $indentMatch[0];
 
-        return preg_replace('/^' . $indent . '/m', '', $trimmedStr);
+        $result = preg_replace('/^' . $indent . '/m', '', $trimmedStr);
+        assert(is_string($result));
+
+        return $result;
     }
 
     /**
@@ -71,7 +75,7 @@ class BuildSchemaTest extends TestCaseBase
         $ast = Parser::parse($sdl);
         $schema = BuildSchema::buildAST($ast, null, $options);
 
-        return SchemaPrinter::doPrint($schema, $options);
+        return SchemaPrinter::doPrint($schema);
     }
 
     /**
@@ -79,7 +83,9 @@ class BuildSchemaTest extends TestCaseBase
      */
     private function printAllASTNodes(NamedType $obj): string
     {
-        Utils::invariant(property_exists($obj, 'astNode') && property_exists($obj, 'extensionASTNodes') && $obj->extensionASTNodes !== null);
+        if (! (property_exists($obj, 'astNode') && $obj->astNode !== null && property_exists($obj, 'extensionASTNodes') && $obj->extensionASTNodes !== null)) {
+            throw new InvariantViolation();
+        }
 
         return Printer::doPrint(new DocumentNode([
             'definitions' => new NodeList([
@@ -153,7 +159,7 @@ class BuildSchemaTest extends TestCaseBase
         ';
         // Should not throw
         BuildSchema::build($sdl);
-        self::assertTrue(true);
+        self::assertDidNotCrash();
     }
 
     /**
@@ -909,7 +915,9 @@ class BuildSchemaTest extends TestCaseBase
 
         $schema = BuildSchema::build($sdl);
 
-        self::assertEquals('https://example.com/foo_spec', $schema->getType('Foo')->specifiedByURL);
+        $type = $schema->getType('Foo');
+        self::assertInstanceOf(ScalarType::class, $type);
+        self::assertEquals('https://example.com/foo_spec', $type->specifiedByURL);
     }
 
     /**
@@ -1214,7 +1222,7 @@ class BuildSchemaTest extends TestCaseBase
         $testDirectiveAst = $testDirective->astNode;
         self::assertInstanceOf(DirectiveDefinitionNode::class, $testDirectiveAst);
 
-        $schemaASTDefinitions = new NodeList([
+        $schemaASTDefinitions = [
             $schema->getAstNode(),
             $query->astNode,
             $testInput->astNode,
@@ -1224,9 +1232,9 @@ class BuildSchemaTest extends TestCaseBase
             $testType->astNode,
             $testScalar->astNode,
             $testDirective->astNode,
-        ]);
+        ];
 
-        self::assertEquals($schemaASTDefinitions, $ast->definitions);
+        self::assertEquals($schemaASTDefinitions, [...$ast->definitions]);
 
         $testField = $query->getField('testField');
         self::assertASTMatches('testField(testArg: TestInput): TestUnion', $testField->astNode);
@@ -1332,7 +1340,10 @@ class BuildSchemaTest extends TestCaseBase
         ');
 
         $queryType = $schema->getQueryType();
-        self::assertEquals('__EnumValue', $queryType->getField('introspectionField')->getType()->name);
+        self::assertInstanceOf(ObjectType::class, $queryType);
+        $introspectionType = $queryType->getField('introspectionField')->getType();
+        self::assertInstanceOf(ObjectType::class, $introspectionType);
+        self::assertEquals('__EnumValue', $introspectionType->name);
         self::assertSame(Introspection::_enumValue(), $schema->getType('__EnumValue'));
     }
 
