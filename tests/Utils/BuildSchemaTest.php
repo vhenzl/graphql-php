@@ -443,8 +443,8 @@ class BuildSchemaTest extends TestCaseBase
             interface EmptyInterface
         ');
 
-        /** @var InterfaceTypeDefinitionNode $definition */
         $definition = Parser::parse($sdl)->definitions[0];
+        self::assertInstanceOf(InterfaceTypeDefinitionNode::class, $definition);
         self::assertCount(0, $definition->interfaces, 'The interfaces property must be an empty list.');
 
         $output = $this->cycleSDL($sdl);
@@ -859,8 +859,8 @@ class BuildSchemaTest extends TestCaseBase
         $ast = Parser::parse($sdl);
         $schema = BuildSchema::buildAST($ast);
 
-        /** @var EnumType $myEnum */
         $myEnum = $schema->getType('MyEnum');
+        self::assertInstanceOf(EnumType::class, $myEnum);
 
         $value = $myEnum->getValue('VALUE');
         self::assertInstanceOf(EnumValueDefinition::class, $value);
@@ -886,8 +886,8 @@ class BuildSchemaTest extends TestCaseBase
         self::assertEquals(true, $rootFields['field2']->isDeprecated());
         self::assertEquals('Because I said so', $rootFields['field2']->deprecationReason);
 
-        /** @var InputObjectType $type */
         $type = $schema->getType('MyInput');
+        self::assertInstanceOf(InputObjectType::class, $type);
         $inputFields = $type->getFields();
         self::assertEquals(null, $inputFields['newInput']->deprecationReason);
         self::assertEquals('No longer supported', $inputFields['oldInput']->deprecationReason);
@@ -939,8 +939,8 @@ class BuildSchemaTest extends TestCaseBase
             directive @bar on SCALAR
         ");
 
-        /** @var ScalarType $someScalar */
         $someScalar = $schema->getType('SomeScalar');
+        self::assertInstanceOf(ScalarType::class, $someScalar);
 
         $expectedSomeScalarSDL = $this->dedent('
             scalar SomeScalar
@@ -976,8 +976,8 @@ class BuildSchemaTest extends TestCaseBase
             interface Baz
         ");
 
-        /** @var ObjectType $someObject */
         $someObject = $schema->getType('SomeObject');
+        self::assertInstanceOf(ObjectType::class, $someObject);
 
         $expectedSomeObjectSDL = $this->dedent('
             type SomeObject implements Foo & Bar & Baz {
@@ -1012,8 +1012,8 @@ class BuildSchemaTest extends TestCaseBase
 
         $schema = BuildSchema::build($interfaceSDL);
 
-        /** @var InterfaceType $someInterface */
         $someInterface = $schema->getType('SomeInterface');
+        self::assertInstanceOf(InterfaceType::class, $someInterface);
 
         $expectedSomeInterfaceSDL = $this->dedent('
             interface SomeInterface {
@@ -1047,8 +1047,8 @@ class BuildSchemaTest extends TestCaseBase
             type ThirdType
         ");
 
-        /** @var UnionType $someUnion */
         $someUnion = $schema->getType('SomeUnion');
+        self::assertInstanceOf(UnionType::class, $someUnion);
 
         $expectedSomeUnionSDL = $this->dedent('
             union SomeUnion = FirstType | SecondType | ThirdType
@@ -1079,8 +1079,8 @@ class BuildSchemaTest extends TestCaseBase
 
         $schema = BuildSchema::build($enumSDL);
 
-        /** @var EnumType $someEnum */
         $someEnum = $schema->getType('SomeEnum');
+        self::assertInstanceOf(EnumType::class, $someEnum);
 
         $expectedSomeEnumSDL = $this->dedent('
             enum SomeEnum {
@@ -1115,8 +1115,8 @@ class BuildSchemaTest extends TestCaseBase
 
         $schema = BuildSchema::build($inputSDL);
 
-        /** @var InputObjectType $someInput */
         $someInput = $schema->getType('SomeInput');
+        self::assertInstanceOf(InputObjectType::class, $someInput);
 
         $expectedSomeInputSDL = $this->dedent('
             input SomeInput {
